@@ -6,64 +6,19 @@ local SkeetLib = {
         Outline = Color3.fromRGB(45, 45, 45)
     },
     Config = {},
-    Elements = {},
-    Folder = "nahbro_configs"
+    Elements = {}
 }
 
 local LP = game:GetService("Players").LocalPlayer
 local UIS = game:GetService("UserInputService")
 local TS = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-local Settings = ToolService and ToolService:GetService("UserGameSettings") or UserSettings():GetService("UserGameSettings")
 
--- // ФІНАЛЬНИЙ ФІКС КУРСОРУ (КУВАЛДА)
-local MenuVisible = false
-local function ToggleMouse(state)
-    MenuVisible = state
-    UIS.MouseIconEnabled = state
-    if state then
-        UIS.MouseBehavior = Enum.MouseBehavior.Default
-        -- Вимикаємо авто-поворот персонажа за мишею
-        Settings.RotationType = Enum.RotationType.MovementRelative
-    else
-        UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-        Settings.RotationType = Enum.RotationType.CameraRelative
-    end
-end
-
--- Жорсткий цикл, який не дає грі тепати мишу назад
-RunService.Stepped:Connect(function()
-    if MenuVisible then
-        UIS.MouseBehavior = Enum.MouseBehavior.Default
-        UIS.MouseIconEnabled = true
-    end
-end)
-
-function SkeetLib:UpdateTheme()
-    for _, data in pairs(self.Elements) do
-        if data.Type == "Accent" then data.Obj.BackgroundColor3 = self.Themes.Accent end
-    end
-end
-
-function SkeetLib:SaveConfig(name)
-    if not isfolder(self.Folder) then makefolder(self.Folder) end
-    writefile(self.Folder.."/"..name..".json", HttpService:JSONEncode(self.Config))
-end
-
-function SkeetLib:LoadConfig(name)
-    local path = self.Folder.."/"..name..".json"
-    if isfile(path) then
-        self.Config = HttpService:JSONDecode(readfile(path))
-        return true
-    end
-    return false
-end
-
--- // ВАТЕРМАРКА
+-- // ВАТЕРМАРКА (Жирна версія)
 local function CreateWatermark(enabled)
     if not enabled then return end
     local WaterGui = Instance.new("ScreenGui", LP.PlayerGui)
+    WaterGui.Name = "nahbro_water"
     local Holder = Instance.new("Frame", WaterGui)
     Holder.BackgroundColor3 = Color3.fromRGB(17, 17, 17)
     Holder.BorderSizePixel = 1
@@ -92,12 +47,13 @@ local function CreateWatermark(enabled)
     end)
 end
 
--- // ВІКНО
+-- // ГОЛОВНЕ ВІКНО
 function SkeetLib:CreateWindow(options)
     CreateWatermark(options.Watermark)
     
     local ScreenGui = Instance.new("ScreenGui", LP.PlayerGui)
-    ScreenGui.Name = "SkeetGui"
+    ScreenGui.Name = "nahbro_permanent"
+    ScreenGui.ResetOnSpawn = false
     ScreenGui.IgnoreGuiInset = true
     
     local Main = Instance.new("Frame", ScreenGui)
@@ -108,7 +64,7 @@ function SkeetLib:CreateWindow(options)
     Main.BorderColor3 = Color3.new(0,0,0)
     Main.Visible = false
 
-    -- MODAL FIX (обов'язково)
+    -- MODAL FIX (ЄДИНИЙ РОБОЧИЙ)
     local Modal = Instance.new("TextButton", Main)
     Modal.Size = UDim2.new(1,0,1,0)
     Modal.BackgroundTransparency = 1
@@ -131,12 +87,17 @@ function SkeetLib:CreateWindow(options)
     Container.Position = UDim2.new(0, 110, 0, 10)
     Container.BackgroundTransparency = 1
 
-    -- TOGGLE MENU
+    local menu_open = false
     UIS.InputBegan:Connect(function(i, p)
         if not p and i.KeyCode == Enum.KeyCode.G then
             Main.Visible = not Main.Visible
-            ToggleMouse(Main.Visible)
+            menu_open = Main.Visible
+            UIS.MouseBehavior = menu_open and Enum.MouseBehavior.Default or Enum.MouseBehavior.LockCenter
         end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if menu_open then UIS.MouseBehavior = Enum.MouseBehavior.Default end
     end)
 
     local lib = {}
@@ -156,11 +117,11 @@ function SkeetLib:CreateWindow(options)
         TabBtn.BackgroundTransparency = 1
         TabBtn.Text = name:upper()
         TabBtn.Font = Enum.Font.Code
-        TabBtn.TextSize = 13
         TabBtn.TextColor3 = Page.Visible and Color3.new(1,1,1) or Color3.fromRGB(150, 150, 150)
+        TabBtn.TextSize = 13
 
         TabBtn.MouseButton1Click:Connect(function()
-            for _, v in pairs(Container:GetChildren()) do v.Visible = false end
+            for _, v in pairs(Container:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
             for _, v in pairs(Sidebar:GetChildren()) do if v:IsA("TextButton") then v.TextColor3 = Color3.fromRGB(150, 150, 150) end end
             Page.Visible = true
             TabBtn.TextColor3 = Color3.new(1,1,1)
@@ -169,19 +130,20 @@ function SkeetLib:CreateWindow(options)
         local tab_ops = {}
         function tab_ops:CreateToggle(text, id, callback)
             local f = Instance.new("Frame", Page)
-            f.Size = UDim2.new(1, -10, 0, 20)
+            f.Size = UDim2.new(1, -10, 0, 25)
             f.BackgroundTransparency = 1
             local b = Instance.new("TextButton", f)
-            b.Size, b.Position = UDim2.new(0, 12, 0, 12), UDim2.new(0, 5, 0, 4)
-            b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            b.Size, b.Position = UDim2.new(0, 14, 0, 14), UDim2.new(0, 5, 0, 5)
+            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             b.Text = ""
             local l = Instance.new("TextLabel", f)
-            l.Text, l.Position, l.Size, l.TextColor3 = text, UDim2.new(0, 25, 0, 0), UDim2.new(1, -30, 1, 0), Color3.fromRGB(220, 220, 220)
-            l.Font, l.TextSize, l.BackgroundTransparency, l.TextXAlignment = Enum.Font.Code, 13, 1, "Left"
+            l.Text, l.Position, l.Size = text, UDim2.new(0, 25, 0, 0), UDim2.new(1, 0, 1, 0)
+            l.TextColor3, l.Font, l.TextSize = Color3.new(1,1,1), Enum.Font.Code, 13
+            l.BackgroundTransparency, l.TextXAlignment = 1, "Left"
 
             b.MouseButton1Click:Connect(function()
                 SkeetLib.Config[id] = not SkeetLib.Config[id]
-                b.BackgroundColor3 = SkeetLib.Config[id] and SkeetLib.Themes.Accent or Color3.fromRGB(35, 35, 35)
+                b.BackgroundColor3 = SkeetLib.Config[id] and SkeetLib.Themes.Accent or Color3.fromRGB(40, 40, 40)
                 callback(SkeetLib.Config[id])
             end)
         end
@@ -192,30 +154,32 @@ function SkeetLib:CreateWindow(options)
             s_f.BackgroundTransparency = 1
             local l = Instance.new("TextLabel", s_f)
             l.Text = text:lower() .. ": " .. min
-            l.Size, l.Font, l.TextSize, l.TextColor3, l.BackgroundTransparency = UDim2.new(1, 0, 0, 15), Enum.Font.Code, 13, Color3.new(1,1,1), 1
-            l.TextXAlignment = "Left"
+            l.Size, l.Font, l.TextSize = UDim2.new(1, 0, 0, 15), Enum.Font.Code, 13
+            l.TextColor3, l.BackgroundTransparency, l.TextXAlignment = Color3.new(1,1,1), 1, "Left"
+
             local bar = Instance.new("TextButton", s_f)
-            bar.Size, bar.Position, bar.BackgroundColor3, bar.Text = UDim2.new(1, -20, 0, 6), UDim2.new(0, 5, 0, 20), Color3.fromRGB(35, 35, 35), ""
+            bar.Size, bar.Position = UDim2.new(1, -20, 0, 6), UDim2.new(0, 5, 0, 20)
+            bar.BackgroundColor3, bar.Text = Color3.fromRGB(40, 40, 40), ""
             local fill = Instance.new("Frame", bar)
             fill.Size, fill.BorderSizePixel = UDim2.new(0, 0, 1, 0), 0
             table.insert(SkeetLib.Elements, {Obj = fill, Type = "Accent"})
 
             local function update(input)
                 local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-                local val = math.floor((min + (max - min) * pos) * 10) / 10
+                local val = math.floor((min + (max - min) * pos) * 100) / 100
                 fill.Size = UDim2.new(pos, 0, 1, 0)
-                l.Text = text:lower() .. ": " .. val
+                l.Text = text:lower() .. ": " .. tostring(val)
                 callback(val)
             end
-            local drag = false
-            bar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = true update(i) end end)
-            UIS.InputChanged:Connect(function(i) if drag and i.UserInputType == Enum.UserInputType.MouseMovement then update(i) end end)
-            UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end end)
+            local dragging = false
+            bar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true update(i) end end)
+            UIS.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then update(i) end end)
+            UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
         end
         return tab_ops
     end
-
-    -- Драг (Перетягування)
+    
+    -- DRAG SYSTEM
     local dS, sP, dG
     Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dG = true dS = i.Position sP = Main.Position end end)
     UIS.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement and dG then
