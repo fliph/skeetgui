@@ -65,32 +65,60 @@ local function CreateWatermark(enabled)
     end)
 end
 
--- // 3. ІНТРО (ФІКСОВАНО)
 local function PlayIntro(enabled)
     if not enabled then return end
+    
     local IntroGui = Instance.new("ScreenGui", LP.PlayerGui)
     IntroGui.Name = "nahbro_intro"
-    IntroGui.DisplayOrder = 1000000 -- Вище за все
-    
-    local Line = Instance.new("Frame", IntroGui)
+    IntroGui.DisplayOrder = 1000001 -- Найвищий пріоритет
+    IntroGui.IgnoreGuiInset = true
+
+    -- Контейнер для центрування
+    local Holder = Instance.new("Frame", IntroGui)
+    Holder.Size = UDim2.new(1, 0, 1, 0)
+    Holder.BackgroundTransparency = 1
+
+    -- Сама лінія
+    local Line = Instance.new("Frame", Holder)
     Line.Size = UDim2.new(0, 0, 0, 2)
     Line.Position = UDim2.new(0.5, 0, 0.5, 0)
     Line.BackgroundColor3 = SkeetLib.Themes.Accent
     Line.BorderSizePixel = 0
-    Line.ZIndex = 10
+    Line.ZIndex = 100
     
-    -- Анімація розширення
-    local tween = TS:Create(Line, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 350, 0, 2),
-        Position = UDim2.new(0.5, -175, 0.5, 0)
+    -- ТЕКСТ (Який не малювався)
+    local Text = Instance.new("TextLabel", Holder)
+    Text.Text = "nahbro.lua" -- Можеш змінити на свою назву
+    Text.Font = Enum.Font.Code
+    Text.TextSize = 20
+    Text.TextColor3 = Color3.new(1, 1, 1)
+    Text.Position = UDim2.new(0.5, -150, 0.5, -30) -- Трохи вище лінії
+    Text.Size = UDim2.new(0, 300, 0, 30)
+    Text.BackgroundTransparency = 1
+    Text.TextTransparency = 1 -- Починаємо з прозорого
+    Text.ZIndex = 101
+
+    -- Анімація лінії
+    local lineTween = TS:Create(Line, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 300, 0, 2),
+        Position = UDim2.new(0.5, -150, 0.5, 0)
     })
     
-    tween:Play()
-    tween.Completed:Wait() -- Чекаємо завершення
-    task.wait(1)
+    -- Анімація тексту (плавна поява)
+    local textTween = TS:Create(Text, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+        TextTransparency = 0
+    })
+
+    lineTween:Play()
+    task.wait(0.4) -- Текст з'являється трохи пізніше за лінію
+    textTween:Play()
     
-    -- Анімація зникнення
+    task.wait(1.5) -- Час на помилуватися
+
+    -- Все зникає
     TS:Create(Line, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+    TS:Create(Text, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+    
     task.wait(0.6)
     IntroGui:Destroy()
 end
@@ -217,3 +245,4 @@ function SkeetLib:CreateWindow(options)
 end
 
 return SkeetLib
+
